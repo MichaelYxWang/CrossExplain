@@ -17,8 +17,9 @@ from consts import global_consts as gc
 class MultimodalSubdata():
     def __init__(self, name="train"):
         self.name = name
-        self.text = np.empty(0)
-        self.text_info = np.empty(0)
+        self.raw_text = np.empty(0)
+        self.text_input_ids = np.empty(0)
+        self.text_attention_mask = np.empty(0)
         self.vision = np.empty(0)
         self.raw_vision_path = np.empty(0)
         self.y = np.empty(0)
@@ -43,8 +44,9 @@ class MultimodalDataset(Data.Dataset):
         elif self.cls == "valid":
             self.dataset = MultimodalDataset.validset
 
-        self.text = self.dataset.text
-        self.text_info = self.dataset.text_info
+        self.raw_text = self.dataset.raw_text
+        self.text_input_ids = self.dataset.text_input_ids
+        self.text_attention_mask = self.dataset.text_attention_mask
         self.vision = self.dataset.vision
         self.raw_vision_path = self.dataset.raw_vision_path
         self.y = self.dataset.y
@@ -80,10 +82,10 @@ class MultimodalDataset(Data.Dataset):
 
         # should have 8435 datapoints after filtering out images with dimension < 224
         # text encoder
-        encoded_texts = []
-        pretrain_model = 'bert-base-cased'
-        tokenizer = BertTokenizer.from_pretrained(pretrain_model)
-        # bert_model = BertModel.from_pretrained(pretrain_model)
+        attention_mask_list = []
+        input_ids_list = []
+        tokenizer = BertTokenizer.from_pretrained(gc.text_pretrained_model)
+
         max_len =160
         for t in texts:
             encoded_text = tokenizer.encode_plus(
@@ -96,27 +98,28 @@ class MultimodalDataset(Data.Dataset):
                                   return_attention_mask=True,
                                   return_tensors='np', # "pt" for pytorch tensors
                                 )
-            encoded_texts += [encoded_text]
-        print(texts[0], encoded_texts[0])
+            input_ids_list += [list(np.array(encoded_text['input_ids']).flatten())]
+            attention_mask_list += [list(np.array(encoded_text['attention_mask']).flatten())]
+        print(input_ids_list[0], attention_mask_list[0])
         '''
-        encoded_texts for "its their character not their color that matters":
-        {'input_ids': [101, 1157, 1147, 1959, 1136, 1147, 2942, 1115, 5218, 102,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0],
-        'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+        [[ 101 1157 1147 1959 1136 1147 2942 1115 5218  102    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0    0    0    0    0    0    0    0    0
+         0    0    0    0    0    0]]
+         [[1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+          0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+          0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+          0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+          0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]]
         '''
-
         # image encoder
         encoded_imgs = []
         imagenet_transform = transforms.Compose([#transforms.ToPILImage(),
@@ -128,6 +131,7 @@ class MultimodalDataset(Data.Dataset):
             image_folderpath = os.path.join(gc.data_path, gc.dataset + '/')
             encoded_img = imagenet_transform(Image.open(image_folderpath+img))
             encoded_imgs += [encoded_img.cpu().detach().numpy()]
+        print(encoded_imgs[0])
         '''
         img/42953.png encoded example:
         [[[-2.117904   -2.117904   -2.117904   ... -2.117904   -2.117904
@@ -174,26 +178,30 @@ class MultimodalDataset(Data.Dataset):
 
         '''
 
-        self.text = texts
-        self.raw_vision_path = imgs
-        self.text_info = encoded_texts
-        self.vision = np.array(encoded_imgs)
-        self.y = np.array(labels)
-        print(self.text[0], self.vision[0], self.y[0])
 
-
-        print("Dimension of {} {} is {}.".format(self.cls, "raw text set", len(self.text)))
-        print("Dimension of {} {} is {}.".format(self.cls, "vision set", self.vision.shape))
-        print("Dimension of {} {} is {}.".format(self.cls, "labels", self.y.shape))
         # Dimension of train raw text set is 8435.
+        # encoded_imgs = np.array(encoded_imgs)
+        # text_input_ids = np.ndarray(input_ids_list)
+        # text_attention_mask = np.ndarray(attention_mask_list)
+        # self.text = texts
+        self.raw_vision_path = imgs
+        self.raw_text = texts
+        self.text_input_ids = torch.tensor(input_ids_list).cpu().detach()
+        self.text_attention_mask = torch.tensor(attention_mask_list).cpu().detach()
+        self.vision = torch.tensor(encoded_imgs).cpu().detach()
+        self.y = torch.tensor(labels).cpu().detach()
+
+        print("Dataset loaded: ")
+        # print("Dimension of {} {} is {}.".format(self.cls, "text input ids", self.text_input_ids.shape))
+        # print("Dimension of {} {} is {}.".format(self.cls, "text attention mask", self.text_attention_mask.shape))
+        # print("Dimension of {} {} is {}.".format(self.cls, "vision set", self.vision.shape))
+        print("Dimension of {} {} is {}.".format(self.cls, "labels", self.y.shape))
         # Dimension of train vision set is (8435, 3, 224, 224).
         # Dimension of train labels is (8435,).
 
 
     def __getitem__(self, index):
-        inputLen = len(self.text[index])
-        return self.text[index], self.vision[index], \
-               inputLen, self.y[index].squeeze()
+        return self.text_input_ids[index], self.text_attention_mask[index], self.vision[index], self.y[index].squeeze()
 
     def __len__(self):
         return len(self.y)
