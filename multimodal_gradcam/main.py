@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.utils.data as Data
 from torch.nn import BCEWithLogitsLoss
 
+from dataset_util import MultimodalDataset
 from model import MultimodalClassifier
 from consts import global_consts as gc
 
@@ -22,11 +23,9 @@ def eval_hateful_memes(model_output, labels):
 
 
 def train_model(model_name):
-    if gc.dataset == "hateful_memes":
-        from dataset_util import MultimodalDataset
-        ds = MultimodalDataset
-
+    ds = MultimodalDataset
     train_dataset = ds(gc.data_path)
+    print(train_dataset.vision.shape)
     train_loader = Data.DataLoader(
         dataset=train_dataset,
         batch_size=gc.batch_size,
@@ -61,6 +60,7 @@ def train_model(model_name):
         print("Loaded model from path {}, at epoch {}, current loss: {}, current acc:{}...".format(model_path, start_epoch, loaded_loss, loaded_acc))
     else:
         print("No model loaded, start training from epoch 0...")
+
     for epoch in range(start_epoch, gc.epoch_num):
         running_train_loss = 0
         running_train_acc = 0
